@@ -1,0 +1,3 @@
+/home/kenneth/Workspace/OpenCv/PlayVideo/build/CMakeFiles/edit_cache.dir
+/home/kenneth/Workspace/OpenCv/PlayVideo/build/CMakeFiles/rebuild_cache.dir
+/home/kenneth/Workspace/OpenCv/PlayVideo/build/CMakeFiles/playvideo.dir

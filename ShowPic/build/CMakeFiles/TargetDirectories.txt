@@ -1,0 +1,3 @@
+/home/kenneth/Workspace/OpenCv/ShowPic/build/CMakeFiles/edit_cache.dir
+/home/kenneth/Workspace/OpenCv/ShowPic/build/CMakeFiles/rebuild_cache.dir
+/home/kenneth/Workspace/OpenCv/ShowPic/build/CMakeFiles/DisplayImage.dir
