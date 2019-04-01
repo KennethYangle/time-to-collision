@@ -3,6 +3,7 @@
 #include <list>
 #include <vector>
 #include <chrono>
+#include <math.h>
 using namespace std; 
 
 #include <opencv2/core/core.hpp>
@@ -11,10 +12,10 @@ using namespace std;
 #include <opencv2/video/tracking.hpp>
 #include <opencv2/videoio.hpp>
 
-// void drawArrow(cv::Mat& img, cv::Point pStart, cv::Point pEnd, int len, int alpha, cv::Scalar& color, int thickness = 1, int lineType = 8);
+
+const double PI = 3.1415926;
 void drawArrow(cv::Mat& img, cv::Point2f pStart, cv::Point2f pEnd, int len, int alpha, cv::Scalar& color, int thickness, int lineType)
 {
-    const double PI = 3.1415926;
     cv::Point2f arrow;
     //计算 θ 角（最简单的一种情况在下面图示中已经展示，关键在于 atan2 函数，详情见下面）
     double angle = atan2((double)(pStart.y - pEnd.y), (double)(pStart.x - pEnd.x));
@@ -127,7 +128,18 @@ int main( int argc, char** argv )
         //     cv::circle(img_show, kp, 3, cv::Scalar(0, 240, 0), 1);
         auto iter_prev = prev_keypoints.begin();
         auto iter_next = keypoints.begin();
-        auto line_color = cv::Scalar(240, 0, 0);
+        cv::Scalar line_color;
+        int theta_to_scale = int( atan( abs( (iter_next->y-iter_prev->y) / (iter_next->x-iter_prev->x) ) /PI*2*255 ) );
+        if ( iter_prev->x > iter_next->x && iter_prev->y > iter_next->y )
+            line_color = cv::Scalar(10, theta_to_scale, 10);
+        else if ( iter_prev->x > iter_next->x && iter_prev->y < iter_next->y )
+            line_color = cv::Scalar(60, 60, theta_to_scale);
+        else if ( iter_prev->x < iter_next->x && iter_prev->y > iter_next->y )
+            line_color = cv::Scalar(theta_to_scale, 10, 110);
+        else
+            line_color = cv::Scalar(theta_to_scale, 160, 160);
+        
+
         for ( ; iter_next!=keypoints.end(); )
         {
             drawArrow(img_show, *iter_prev, *iter_next, 2, 15, line_color, 1, 8);
