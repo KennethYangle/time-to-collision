@@ -9,6 +9,7 @@ using namespace std;
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/video/tracking.hpp>
+#include <opencv2/videoio.hpp>
 
 // void drawArrow(cv::Mat& img, cv::Point pStart, cv::Point pEnd, int len, int alpha, cv::Scalar& color, int thickness = 1, int lineType = 8);
 void drawArrow(cv::Mat& img, cv::Point2f pStart, cv::Point2f pEnd, int len, int alpha, cv::Scalar& color, int thickness, int lineType)
@@ -29,31 +30,40 @@ void drawArrow(cv::Mat& img, cv::Point2f pStart, cv::Point2f pEnd, int len, int 
 
 int main( int argc, char** argv )
 {
-    if ( argc != 2 )
-    {
-        cout<<"usage: useLK path_to_dataset"<<endl;
-        return 1;
-    }
-    string path_to_dataset = argv[1];
-    string associate_file = path_to_dataset + "/associate.txt";
+    // if ( argc != 2 )
+    // {
+    //     cout<<"usage: useLK path_to_dataset"<<endl;
+    //     return 1;
+    // }
+    // string path_to_dataset = argv[1];
+    // string associate_file = path_to_dataset + "/associate.txt";
     
-    ifstream fin( associate_file );
-    if ( !fin ) 
-    {
-        cerr<<"I cann't find associate.txt!"<<endl;
-        return 1;
-    }
+    // ifstream fin( associate_file );
+    // if ( !fin ) 
+    // {
+    //     cerr<<"I cann't find associate.txt!"<<endl;
+    //     return 1;
+    // }
     
-    string rgb_file, depth_file, time_rgb, time_depth;
+    // string rgb_file, depth_file, time_rgb, time_depth;
     list< cv::Point2f > keypoints;      // 因为要删除跟踪失败的点，使用list
     cv::Mat color, depth, last_color;
+    // cv::VideoCapture cap("/home/kenneth/Workspace/OpenCv/Optical_TTC/data/c280a7a1ff65d4567f5ba2a7ef1072f9.mp4");
+    cv::VideoCapture cap(0);
+    string output_video_path = "../capture.avi";
+    cv::Size sWH = cv::Size((int)cap.get(CV_CAP_PROP_FRAME_WIDTH), (int)cap.get(CV_CAP_PROP_FRAME_HEIGHT));
+    cv::VideoWriter output_video;
+    output_video.open(output_video_path, CV_FOURCC('M', 'P', '4', '2'), 25.0, sWH);
     
-    for ( int index=0; index<100; index++ )
+    for ( int index=0; index<1000; index++ )
     {
-        fin>>time_rgb>>rgb_file>>time_depth>>depth_file;
-        color = cv::imread( path_to_dataset+"/"+rgb_file );
-        depth = cv::imread( path_to_dataset+"/"+depth_file, -1 );
-        if (index ==0 )
+        // fin>>time_rgb>>rgb_file>>time_depth>>depth_file;
+        // color = cv::imread( path_to_dataset+"/"+rgb_file );
+        // depth = cv::imread( path_to_dataset+"/"+depth_file, -1 );
+
+        cap >> color;
+
+        if (index % 50 == 0 )
         {
             // 对第一帧提取FAST特征点
             vector<cv::KeyPoint> kps;
@@ -61,13 +71,13 @@ int main( int argc, char** argv )
             detector->detect( color, kps );
             for ( auto kp:kps )
                 keypoints.push_back( kp.pt );
-            last_color = color;
+            last_color = color.clone();
             continue;
         }
-        if ( color.data==nullptr || depth.data==nullptr )
-            continue;
+        // if ( color.data==nullptr || depth.data==nullptr )
+        //     continue;
         // 对其他帧用LK跟踪特征点
-        vector<cv::Point2f> next_keypoints; 
+        vector<cv::Point2f> next_keypoints;
         vector<cv::Point2f> prev_keypoints;
         for ( auto kp:keypoints )
             prev_keypoints.push_back(kp);
@@ -79,7 +89,7 @@ int main( int argc, char** argv )
         chrono::duration<double> time_used = chrono::duration_cast<chrono::duration<double>>( t2-t1 );
         cout<<"LK Flow use time："<<time_used.count()<<" seconds."<<endl;
         // 把跟丢的点删掉
-        int i=0; 
+        int i=0;
         for ( auto iter=keypoints.begin(); iter!=keypoints.end(); i++)
         {
             if ( status[i] == 0 )
@@ -126,8 +136,10 @@ int main( int argc, char** argv )
         }
 
         cv::imshow("corners", img_show);
-        cv::waitKey(50);
-        last_color = color;
+        cv::waitKey(1);
+        output_video << img_show;
+        last_color = color.clone();
     }
+    output_video.release();
     return 0;
 }
