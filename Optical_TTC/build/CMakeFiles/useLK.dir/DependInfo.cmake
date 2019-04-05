@@ -4,7 +4,7 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
-  "/home/kenneth/Workspace/OpenCv/Optical_TTC/useLK.cpp" "/home/kenneth/Workspace/OpenCv/Optical_TTC/build/CMakeFiles/useLK.dir/useLK.cpp.o"
+  "/home/kenneth/WorkSpace/OpenCv/time-to-collision/Optical_TTC/useLK.cpp" "/home/kenneth/WorkSpace/OpenCv/time-to-collision/Optical_TTC/build/CMakeFiles/useLK.dir/useLK.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 
