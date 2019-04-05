@@ -4,7 +4,7 @@
 #include <vector>
 #include <chrono>
 #include <math.h>
-using namespace std; 
+using namespace std;
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -13,6 +13,8 @@ using namespace std;
 #include <opencv2/videoio.hpp>
 
 const double PI = 3.1415926;
+const int BLOCK_NUM_X = 16;
+const int BLOCK_NUM_Y = 16;
 
 void drawArrow(cv::Mat& img, cv::Point2f pStart, cv::Point2f pEnd, int len, int alpha, cv::Scalar& color, int thickness, int lineType)
 {
@@ -43,6 +45,8 @@ int main( int argc, char** argv )
     for ( int index=0; index<1000; index++ )
     {
         cap >> color;
+        int img_width = color.cols;
+        int img_height = color.rows;
 
         // 每50帧提取FAST特征点
         if (index % 50 == 0 )
@@ -132,8 +136,47 @@ int main( int argc, char** argv )
             px_b[0] = iter_key->x * px_trans[1] - iter_key->y * px_trans[0];
             iter_key++;
         }
-        cv::solve(A, b, foe, cv::DECOMP_QR);        // 求解FOE
+        cv::solve(A, b, foe, cv::DECOMP_QR);                // 求解FOE
         cout << "FOE: \n" << foe << endl;
+
+        // 计算碰撞时间 Time to Collision
+        double ttc[keypoints.size()] = {0};                 // 计算每个keypoint的ttc
+        i = 0;
+        for ( auto iter=keypoints.begin(); iter!=keypoints.end(); iter++)
+        {
+            auto pxvec = optical_translation.ptr<double>(i);
+            ttc[i] = sqrt( ( (iter->x-foe.at<double>(0,0))*(iter->x-foe.at<double>(0,0)) + (iter->y-foe.at<double>(1,0))*(iter->y-foe.at<double>(1,0)) ) / (pxvec[0]*pxvec[0] + pxvec[1]*pxvec[1]));
+            i++;
+        }
+        int kp_cnt[BLOCK_NUM_X][BLOCK_NUM_Y] = {0};         // 统计图像块中关键点个数
+        double ttc_sum[BLOCK_NUM_X][BLOCK_NUM_Y] = {0};
+        i = 0;
+        for ( auto iter=keypoints.begin(); iter!=keypoints.end(); iter++)
+        {
+            int index_x = (int)(iter->x * BLOCK_NUM_X / img_width);
+            int index_y = (int)(iter->y * BLOCK_NUM_Y /img_height);
+            kp_cnt[index_x][index_y]++;
+            ttc_sum[index_x][index_y] += ttc[i];
+            i++;
+        }
+        double ttc_block[BLOCK_NUM_X][BLOCK_NUM_Y] = {0};   // 计算块中平均碰撞时间
+        for( int i=0; i<BLOCK_NUM_X; i++)
+        {
+            for (int j=0; j<BLOCK_NUM_Y; j++)
+            {
+                if (kp_cnt[i][j])
+                {
+                    ttc_block[i][j] = ttc_sum[i][j] / kp_cnt[i][j];
+                }
+            }
+        }
+        // cout << "ttc_block: \n";                          // 输出
+        // for(int i=0; i<BLOCK_NUM_X; i++){
+        //     for(int j=0; j<BLOCK_NUM_Y; j++){
+        //         cout << ttc_block[i][j] << '\t';
+        //     }
+        //     cout << endl;
+        // }
 
         // 画出 keypoints和光流
         cv::Mat img_show = color.clone();
@@ -157,6 +200,27 @@ int main( int argc, char** argv )
                 line_color = cv::Scalar(theta_to_scale, 160, 160);
             drawArrow(img_show, prev_keypoints[i], prev_keypoints[i]+*iter, 2, 15, line_color, 1, 8);
             i++;
+        }
+
+        // 画出碰撞时间
+        for (int i=0; i<BLOCK_NUM_X; i++)
+        {
+            for (int j=0; j<BLOCK_NUM_Y; j++)
+            {
+                if (kp_cnt[i][j])
+                {
+                    char str[25];
+                    sprintf(str, "%.1lf", ttc_block[i][j]);
+                    string text = str;
+                    cv::Point origin = cv::Point(sWH.width/BLOCK_NUM_X * i, sWH.height/BLOCK_NUM_Y * j);
+                    int fontFace = cv::FONT_HERSHEY_SIMPLEX;
+                    double fontScale = 0.2;
+                    cv::Scalar color = cv::Scalar(0,0,255);
+                    int thickness = 1;
+                    int lineType = 8;
+                    cv::putText(img_show, text, origin, fontFace, fontScale, color, thickness, lineType);
+                }
+            }
         }
 
         cv::imshow("corners", img_show);
